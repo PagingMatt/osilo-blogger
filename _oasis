@@ -15,4 +15,4 @@ Executable blogger
   Path: src
   MainIs: Blogger.ml
   CompiledObject: best
-  BuildDepends: osilo, threads
+  BuildDepends: core, osilo, threads
