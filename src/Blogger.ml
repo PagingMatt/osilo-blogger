@@ -49,6 +49,15 @@ let read_my =
     )
     (fun i () -> Lwt_main.run (Client.read_my ~id:i))
 
+let remove =
+  Command.basic
+    ~summary:"Removes one of my blog posts from my silo and remote caches."
+    Command.Spec.(
+      empty
+      +> flag "-i" (required string) ~doc:" ID of post to remove."
+    )
+    (fun i () -> Lwt_main.run (Client.remove ~id:i))
+
 let show =
   Command.basic
     ~summary:"Show a summary of a peer's posts."
@@ -69,11 +78,11 @@ let show_my =
 let commands = 
   Command.group 
     ~summary:"CLI for the osilo blogger."
-    [("init",init);("invite",invite);("post",post);("read",read);("read-my",read_my);("show",show);("show-my",show_my)]
+    [("init",init);("invite",invite);("post",post);("read",read);("read-my",read_my);("remove",remove);("show",show);("show-my",show_my)]
 
 let () = 
   Command.run
     ~version:"0.1"
     ~build_info:"osilo-blogger"
-    Cli.commands
+    commands
     
