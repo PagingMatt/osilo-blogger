@@ -142,6 +142,42 @@ let read_my ~id =
     let post  = string_member "content" j in
     Printf.printf "%s:\n\n%s\n\n" title post)
 
+let remove_from_listing my_peer key id =
+  let plaintext = (`List [`String "posts/list.json"]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
+  let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
+  let path = Printf.sprintf "/client/get/local/blogger" in
+  Http_client.post ~peer:my_peer ~path ~body
+  >|= (fun (c,b) -> Coding.decode_client_message b) 
+  >|= (fun (ciphertext,iv) -> Cryptography.CS.decrypt' ~key ~ciphertext ~iv)
+  >|= Cstruct.to_string
+  >|= Yojson.Basic.from_string
+  >|= assoc_member "posts/list.json"
+  >|= (fun l ->
+    let entry = `Assoc (List.filter l ~f:(fun (id',_) -> not(id=id'))) in
+    let plaintext = (`Assoc [("posts/list.json",entry)]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+    let c',i' = Cryptography.CS.encrypt' ~key ~plaintext in
+    let body' = Coding.encode_client_message ~ciphertext:c' ~iv:i' in
+    let path = "/client/set/local/blogger" in
+    Http_client.post ~peer:my_peer ~path ~body:body')
+
+let remove' my_peer key name =
+  let plaintext = (`List [`String name]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
+  let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
+  let path = Printf.sprintf "/client/del/local/blogger" in
+  Http_client.post ~peer:my_peer ~path ~body
+  >>= (fun _ -> 
+    let path' = Printf.sprintf "/client/inv/blogger" in
+    Http_client.post ~peer:my_peer ~path:path' ~body)
+  >|= (fun _ -> ())
+
+let remove ~id = 
+  let my_peer,key = read_config () in
+  let name = Printf.sprintf "posts/content/%s.json" id in
+  remove_from_listing my_peer key id
+  >>= (fun _ -> remove' my_peer key name)
+
 let show ~peer = 
   let my_peer,key = read_config () in
   let plaintext = (`List [(`Assoc [
