@@ -1,0 +1,22 @@
+# OASIS_START
+# DO NOT EDIT (digest: 97e1560b245ab92247fe42fe4f000ba6)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Executable blogger
+<src/Blogger.{native,byte}>: pkg_osilo
+<src/Blogger.{native,byte}>: pkg_threads
+<src/*.ml{,i,y}>: pkg_osilo
+<src/*.ml{,i,y}>: pkg_threads
+# OASIS_STOP
