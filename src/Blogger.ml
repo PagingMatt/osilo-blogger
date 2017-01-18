@@ -132,6 +132,18 @@ let show ~peer =
   >|= Cstruct.to_string
   >|= (fun m -> Printf.printf "All blog posts from %s:\n\n%s\n\n" (Peer.host peer) m)
 
+let show_my ~peer = 
+  let my_peer,key = read_config () in
+  let plaintext = (`List [`String "posts/list.json"]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
+  let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
+  let path = Printf.sprintf "/client/get/local/blogger" in
+  Http_client.post ~peer:my_peer ~path ~body
+  >|= (fun (c,b) -> Coding.decode_client_message b) 
+  >|= (fun (ciphertext,iv) -> Cryptography.CS.decrypt' ~key ~ciphertext ~iv)
+  >|= Cstruct.to_string
+  >|= (fun m -> Printf.printf "All my blog posts:\n\n%s\n\n" m)
+
 module Cli = struct 
   let init =
     Command.basic
@@ -181,10 +193,18 @@ module Cli = struct
       )
       (fun p () -> Lwt_main.run (show ~peer:(Peer.create p)))
 
+  let show_my =
+    Command.basic
+      ~summary:"Show a summary of my posts."
+      Command.Spec.(
+        empty
+      )
+      (fun () -> Lwt_main.run (show_my ()))
+
   let commands = 
     Command.group 
       ~summary:"CLI for the osilo blogger."
-      [("init",init);("invite",invite);("post",post);("read",read);("show",show)]
+      [("init",init);("invite",invite);("post",post);("read",read);("show",show);("show-my",show_my)]
 end
 
 let () = 
