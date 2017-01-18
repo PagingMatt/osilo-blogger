@@ -105,10 +105,11 @@ let post ~title ~post =
 
 let read ~peer ~id = 
   let my_peer,key = read_config () in
+  let name = Printf.sprintf "posts/content/%s.json" id in
   let plaintext = (`List [(`Assoc [
-    ("path"       ,`String (Printf.sprintf "posts/content/%s.json" id));
-    ("check_cache", `Bool true); 
-    ("write_back" , `Bool true)])]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+    ("path"       ,`String name);
+    ("check_cache", `Bool true ); 
+    ("write_back" , `Bool true )])]) |> Yojson.Basic.to_string |> Cstruct.of_string in
   let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
   let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
   let path = Printf.sprintf "/client/get/%s/blogger" (Peer.host peer) in
@@ -117,6 +118,7 @@ let read ~peer ~id =
   >|= (fun (ciphertext,iv) -> Cryptography.CS.decrypt' ~key ~ciphertext ~iv)
   >|= Cstruct.to_string
   >|= Yojson.Basic.from_string
+  >|= (fun json -> `Assoc (assoc_member name json))
   >|= (fun j -> 
     let title = string_member "title" j in
     let post  = string_member "content" j in
@@ -124,7 +126,8 @@ let read ~peer ~id =
 
 let read_my ~id = 
   let my_peer,key = read_config () in
-  let plaintext = (`List [`String (Printf.sprintf "posts/content/%s.json" id)]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let name = Printf.sprintf "posts/content/%s.json" id in
+  let plaintext = (`List [`String name]) |> Yojson.Basic.to_string |> Cstruct.of_string in
   let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
   let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
   let path = Printf.sprintf "/client/get/local/blogger" in
@@ -133,6 +136,7 @@ let read_my ~id =
   >|= (fun (ciphertext,iv) -> Cryptography.CS.decrypt' ~key ~ciphertext ~iv)
   >|= Cstruct.to_string
   >|= Yojson.Basic.from_string
+  >|= (fun json -> `Assoc (assoc_member name json))
   >|= (fun j -> 
     let title = string_member "title" j in
     let post  = string_member "content" j in
