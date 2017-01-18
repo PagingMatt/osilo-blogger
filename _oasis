@@ -1,0 +1,18 @@
+Name: osilo-blogger
+Version: 0.1
+Synopsis: Blogging client implemented over osilo
+Authors: Matt Harrison <mah93@cam.ac.uk>
+License: ISC
+
+Description: Blogging client implemented over osilo
+Homepage: https://www.github.com/m-harrison/osilo-blogger
+
+OASISFormat: 0.4
+BuildTools: ocamlbuild
+Plugins: META (0.4), DevFiles (0.4)
+
+Executable blogger
+  Path: src
+  MainIs: Blogger.ml
+  CompiledObject: best
+  BuildDepends: osilo
