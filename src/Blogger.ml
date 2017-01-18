@@ -117,6 +117,22 @@ let read ~peer ~id =
     let post  = string_member "content" j in
     Printf.printf "%s:\n\n%s\n\n" title post)
 
+let read_my ~id = 
+  let my_peer,key = read_config () in
+  let plaintext = (`List [`String (Printf.sprintf "posts/content/%s.json" id)]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
+  let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
+  let path = Printf.sprintf "/client/get/local/blogger" in
+  Http_client.post ~peer:my_peer ~path ~body
+  >|= (fun (c,b) -> Coding.decode_client_message b) 
+  >|= (fun (ciphertext,iv) -> Cryptography.CS.decrypt' ~key ~ciphertext ~iv)
+  >|= Cstruct.to_string
+  >|= Yojson.Basic.from_string
+  >|= (fun j -> 
+    let title = string_member "title" j in
+    let post  = string_member "content" j in
+    Printf.printf "%s:\n\n%s\n\n" title post)
+
 let show ~peer = 
   let my_peer,key = read_config () in
   let plaintext = (`List [(`Assoc [
@@ -132,7 +148,7 @@ let show ~peer =
   >|= Cstruct.to_string
   >|= (fun m -> Printf.printf "All blog posts from %s:\n\n%s\n\n" (Peer.host peer) m)
 
-let show_my ~peer = 
+let show_my () = 
   let my_peer,key = read_config () in
   let plaintext = (`List [`String "posts/list.json"]) |> Yojson.Basic.to_string |> Cstruct.of_string in
   let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
@@ -176,13 +192,22 @@ module Cli = struct
 
   let read =
     Command.basic
-      ~summary:"Read another peer's blog post."
+      ~summary:"Read one of another peer's blog posts."
       Command.Spec.(
         empty
         +> flag "-p" (required string) ~doc:" Peer blog post is from."
         +> flag "-i" (required string) ~doc:" ID of post to read."
       )
       (fun p i () -> Lwt_main.run (read ~peer:(Peer.create p) ~id:i))
+
+  let read_my =
+    Command.basic
+      ~summary:"Read one of my blog posts."
+      Command.Spec.(
+        empty
+        +> flag "-i" (required string) ~doc:" ID of post to read."
+      )
+      (fun i () -> Lwt_main.run (read_my ~id:i))
 
   let show =
     Command.basic
@@ -204,7 +229,7 @@ module Cli = struct
   let commands = 
     Command.group 
       ~summary:"CLI for the osilo blogger."
-      [("init",init);("invite",invite);("post",post);("read",read);("show",show);("show-my",show_my)]
+      [("init",init);("invite",invite);("post",post);("read",read);("read-my",read_my);("show",show);("show-my",show_my)]
 end
 
 let () = 
