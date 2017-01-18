@@ -33,14 +33,22 @@ let read_config () =
   let k = (string_member "key" j  |> Coding.decode_cstruct) in
   (close file); (p,k)
 
+open Osilo.Auth
+open Lwt.Infix
+
+let init_listing my_peer key = 
+  let plaintext = (`Assoc [("posts/list.json",`Assoc [])]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
+  let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
+  let path = "/client/set/local/blogger" in
+  Http_client.post ~peer:my_peer ~path ~body
+  >|= fun _ -> ()
+
 let init ~peer ~key =
   mkdir ~perm:0o700 dir;
   let buf  = Yojson.Basic.to_string (`Assoc [("peer", `String (Peer.host peer)); ("key", `String key)]) in
   let file = openfile ~perm:0o600 ~mode:[O_WRONLY;O_CREAT] (Printf.sprintf "%s/config.json" dir) in
-  single_write file ~buf |> fun _ -> (close file)
-
-open Osilo.Auth
-open Lwt.Infix
+  single_write file ~buf |> fun _ -> (close file); init_listing peer (Coding.decode_cstruct key)
 
 let invite ~peer =
   let my_peer,key = read_config () in 
@@ -133,7 +141,7 @@ module Cli = struct
         +> flag "-p" (required string) ~doc:" Hostname of peer to blog from."
         +> flag "-k" (required string) ~doc:" Secret key to share with peer."
       )
-      (fun p k () -> init ~peer:(Peer.create p) ~key:k) (* also setup posts/list.json *)
+      (fun p k () -> Lwt_main.run (init ~peer:(Peer.create p) ~key:k))
 
   let invite =
     Command.basic
