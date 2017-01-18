@@ -24,11 +24,15 @@ let assoc_member s j =
   | `Assoc m -> m
   | _         -> raise (Decoding_failed s)
 
+let read_file file =
+  let buf = String.make 65536 'x' in
+  let len = read file ~buf        in
+  String.prefix buf len
+
 let read_config () = 
   let file = openfile ~mode:[O_RDONLY] (Printf.sprintf "%s/config.json" dir) in
-  let buf = "" in
-  read file ~buf;
-  let j = Yojson.Basic.from_string buf in
+  let f = read_file file in
+  let j = Yojson.Basic.from_string f in
   let p = (string_member "peer" j |> Peer.create          ) in
   let k = (string_member "key" j  |> Coding.decode_cstruct) in
   (close file); (p,k)
@@ -46,9 +50,9 @@ let init_listing my_peer key =
 
 let init ~peer ~key =
   mkdir ~perm:0o700 dir;
-  let buf  = Yojson.Basic.to_string (`Assoc [("peer", `String (Peer.host peer)); ("key", `String key)]) in
+  let buffer  = Yojson.Basic.to_string (`Assoc [("peer", `String (Peer.host peer)); ("key", `String key)]) in
   let file = openfile ~perm:0o600 ~mode:[O_WRONLY;O_CREAT] (Printf.sprintf "%s/config.json" dir) in
-  single_write file ~buf |> fun _ -> (close file); init_listing peer (Coding.decode_cstruct key)
+  single_write file ~buf:buffer |> fun _ -> (close file); init_listing peer (Coding.decode_cstruct key)
 
 let invite ~peer =
   let my_peer,key = read_config () in 
@@ -84,7 +88,8 @@ let update_post_list title id my_peer key =
 
 let publish_post title id post my_peer key =
   let name = Printf.sprintf "posts/content/%s.json" id in
-  let content = `Assoc [("title",`String title);("content",`String post)] in
+  let post_content = openfile ~mode:[O_RDONLY] post |> read_file in
+  let content = `Assoc [("title",`String title);("content",`String post_content)] in
   let plaintext = (`Assoc [(name,content)]) |> Yojson.Basic.to_string |> Cstruct.of_string in
   let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
   let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
