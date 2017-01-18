@@ -90,6 +90,25 @@ let post ~title ~post =
   update_post_list title id my_peer key;
   publish_post title id post my_peer key
 
+let read ~peer ~id = 
+  let my_peer,key = read_config () in
+  let plaintext = (`List [(`Assoc [
+    ("path"       ,`String (Printf.sprintf "posts/content/%s.json" id));
+    ("check_cache", `Bool true); 
+    ("write_back" , `Bool true)])]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+  let c,i = Cryptography.CS.encrypt' ~key ~plaintext in
+  let body = Coding.encode_client_message ~ciphertext:c ~iv:i in
+  let path = Printf.sprintf "/client/get/%s/blogger" (Peer.host peer) in
+  Http_client.post ~peer:my_peer ~path ~body
+  >|= (fun (c,b) -> Coding.decode_client_message b) 
+  >|= (fun (ciphertext,iv) -> Cryptography.CS.decrypt' ~key ~ciphertext ~iv)
+  >|= Cstruct.to_string
+  >|= Yojson.Basic.from_string
+  >|= (fun j -> 
+    let title = string_member "title" j in
+    let post  = string_member "content" j in
+    Printf.printf "%s:\n\n%s\n\n" title post)
+
 let show ~peer = 
   let my_peer,key = read_config () in
   let plaintext = (`List [(`Assoc [
@@ -135,6 +154,16 @@ module Cli = struct
       )
       (fun t f () -> Lwt_main.run (post ~title:t ~post:f))
 
+  let read =
+    Command.basic
+      ~summary:"Read another peer's blog post."
+      Command.Spec.(
+        empty
+        +> flag "-p" (required string) ~doc:" Peer blog post is from."
+        +> flag "-i" (required string) ~doc:" ID of post to read."
+      )
+      (fun p i () -> Lwt_main.run (read ~peer:(Peer.create p) ~id:i))
+
   let show =
     Command.basic
       ~summary:"Show a summary of a peer's posts."
@@ -147,7 +176,7 @@ module Cli = struct
   let commands = 
     Command.group 
       ~summary:"CLI for the osilo blogger."
-      [("init",init);("invite",invite);("post",post);("show",show)]
+      [("init",init);("invite",invite);("post",post);("read",read);("show",show)]
 end
 
 let () = 
