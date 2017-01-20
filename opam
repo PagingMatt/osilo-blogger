@@ -1,0 +1,19 @@
+opam-version: "1.2"
+name: "osilo-blogger"
+version: "0.1"
+maintainer: "Matt Harrison <mah93@cam.ac.uk>"
+author: "Matt Harrison <mah93@cam.ac.uk>"
+homepage: "https://github.com/m-harrison/osilo-blogger"
+bug-reports: "https://github.com/m-harrison/osilo-blogger/issues/new"
+license: "ISC"
+dev-repo: "https://github.com/m-harrison/osilo-blogger"
+build: [make]
+install: [make "install"]
+remove: ["ocamlfind" "remove" "osilo"]
+depends: [
+  "core"
+  "osilo"
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+]
+available: [ocaml-version >= "4.02.3"]
