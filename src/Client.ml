@@ -79,11 +79,11 @@ let update_post_list title id my_peer key =
   >|= assoc_member "posts/list.json"
   >|= (fun l -> 
     let entry = `Assoc ((id,`String title)::l) in
-    let plaintext = (`Assoc [("posts/list.json",entry)]) |> Yojson.Basic.to_string |> Cstruct.of_string in
-    let c',i' = Cryptography.CS.encrypt' ~key ~plaintext in
+    let plaintext' = (`Assoc [("posts/list.json",entry)]) |> Yojson.Basic.to_string |> Cstruct.of_string in
+    let c',i' = Cryptography.CS.encrypt' ~key ~plaintext:plaintext' in
     let body' = Coding.encode_client_message ~ciphertext:c' ~iv:i' in
-    let path = "/client/set/local/blogger" in
-    Http_client.post ~peer:my_peer ~path ~body:body'
+    let path' = "/client/set/local/blogger" in
+    Http_client.post ~peer:my_peer ~path:path' ~body:body'
     >|= fun _ -> ())
 
 let publish_post title id post my_peer key =
@@ -100,8 +100,8 @@ let publish_post title id post my_peer key =
 let post ~title ~post =
   let my_peer,key = read_config () in
   let id = Nocrypto.Rng.generate 16 |> Coding.encode_cstruct |> String.filter ~f:(fun c -> not(c='/')) in
-  update_post_list title id my_peer key;
-  publish_post title id post my_peer key
+  update_post_list title id my_peer key
+  >>= fun _ -> publish_post title id post my_peer key
 
 let read ~peer ~id = 
   let my_peer,key = read_config () in
