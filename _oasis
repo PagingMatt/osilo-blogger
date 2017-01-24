@@ -16,3 +16,4 @@ Executable blogger
   MainIs: Blogger.ml
   CompiledObject: best
   BuildDepends: core, osilo, threads
+  Install: false
