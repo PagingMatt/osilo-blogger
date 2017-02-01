@@ -11,9 +11,13 @@ build: [make]
 install: [make "install"]
 remove: ["ocamlfind" "remove" "osilo"]
 depends: [
+  "cohttp"
   "core"
-  "osilo"
+  "lwt"
   "ocamlfind" {build}
   "ocamlbuild" {build}
+  "tls"
+  "uri"
+  "yojson"
 ]
 available: [ocaml-version >= "4.02.3"]
