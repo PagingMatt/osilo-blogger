@@ -15,5 +15,5 @@ Executable blogger
   Path: src
   MainIs: Blogger.ml
   CompiledObject: best
-  BuildDepends: core, osilo, threads
+  BuildDepends: core, cohttp.lwt, lwt, tls, uri, yojson, threads
   Install: false

@@ -1,5 +1,4 @@
 open Core.Std
-open Osilo 
 
 let init =
   Command.basic
@@ -9,7 +8,7 @@ let init =
       +> flag "-p" (required string) ~doc:" Hostname of peer to blog from."
       +> flag "-k" (required string) ~doc:" Secret key to share with peer."
     )
-    (fun p k () -> Lwt_main.run (Client.init ~peer:(Peer.create p) ~key:k))
+    (fun p k () -> Lwt_main.run (Client.init ~peer:p ~key:k))
 
 let invite =
   Command.basic
@@ -18,7 +17,7 @@ let invite =
       empty
       +> flag "-p" (required string) ~doc:" Hostname of peer to invite."
     )
-    (fun p () -> Lwt_main.run (Client.invite ~peer:(Peer.create p)))
+    (fun p () -> Lwt_main.run (Client.invite ~peer:p))
 
 let post =
   Command.basic
@@ -38,7 +37,7 @@ let read =
       +> flag "-p" (required string) ~doc:" Peer blog post is from."
       +> flag "-i" (required string) ~doc:" ID of post to read."
     )
-    (fun p i () -> Lwt_main.run (Client.read ~peer:(Peer.create p) ~id:i))
+    (fun p i () -> Lwt_main.run (Client.read ~peer:p ~id:i))
 
 let read_my =
   Command.basic
@@ -65,7 +64,7 @@ let show =
       empty
       +> flag "-p" (required string) ~doc:" Peer to get summary for."
     )
-    (fun p () -> Lwt_main.run (Client.show ~peer:(Peer.create p)))
+    (fun p () -> Lwt_main.run (Client.show ~peer:p))
 
 let show_my =
   Command.basic
