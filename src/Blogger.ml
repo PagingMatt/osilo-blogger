@@ -19,6 +19,16 @@ let invite =
     )
     (fun p () -> Lwt_main.run (Client.invite ~peer:p))
 
+let invite-post =
+  Command.basic
+    ~summary:"Invites another peer to read a post on this blog."
+    Command.Spec.(
+      empty
+      +> flag "-p" (required string) ~doc:" Hostname of peer to invite."
+      +> flag "-i" (required string) ~doc:" ID of post to invite peer to read."
+    )
+    (fun p i () -> Lwt_main.run (Client.invite-post ~peer:p ~id:i))
+
 let post =
   Command.basic
     ~summary:"Publish a blog post."
@@ -74,14 +84,13 @@ let show_my =
     )
     (fun () -> Lwt_main.run (Client.show_my ()))
 
-let commands = 
-  Command.group 
+let commands =
+  Command.group
     ~summary:"CLI for the osilo blogger."
-    [("init",init);("invite",invite);("post",post);("read",read);("read-my",read_my);("remove",remove);("show",show);("show-my",show_my)]
+    [("init",init);("invite",invite);("invite-post",invite-post);("post",post);("read",read);("read-my",read_my);("remove",remove);("show",show);("show-my",show_my)]
 
-let () = 
+let () =
   Command.run
     ~version:"0.1"
     ~build_info:"osilo-blogger"
     commands
-    
