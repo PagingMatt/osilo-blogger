@@ -9,7 +9,7 @@ exception Cannot_find_home
 exception Could_not_write_config of int
 exception Decoding_failed of string
 
-let build_uri ~peer ~path = 
+let build_uri ~peer ~path =
   Uri.make ~scheme:"https" ~host:peer ~port:6620 ~path:path ()
 
 let handle_http_resp (r,b) =
@@ -19,11 +19,11 @@ let handle_http_resp (r,b) =
 
 let https_post ~peer ~path ~body ~key =
   let uri = build_uri ~peer ~path in
-  (Cohttp_lwt_unix.Client.post ~body:(Cohttp_lwt_body.of_string body) 
+  (Cohttp_lwt_unix.Client.post ~body:(Cohttp_lwt_body.of_string body)
     ~headers:(Header.add_authorization (Header.init ()) (`Other key)) uri)
   >>= handle_http_resp
 
-let home = Sys.getenv "HOME" |> 
+let home = Sys.getenv "HOME" |>
   begin function
   | Some h -> h
   | None   -> raise Cannot_find_home
@@ -31,12 +31,12 @@ let home = Sys.getenv "HOME" |>
 
 let dir  = (Printf.sprintf "%s/.osilo-blogger" home)
 
-let string_member s j = 
+let string_member s j =
   match Yojson.Basic.Util.member s j with
   | `String m -> m
   | _         -> raise (Decoding_failed s)
 
-let assoc_member s j = 
+let assoc_member s j =
   match Yojson.Basic.Util.member s j with
   | `Assoc m -> m
   | _        -> raise (Decoding_failed s)
@@ -46,7 +46,7 @@ let read_file file =
   let len = read file ~buf        in
   String.prefix buf len
 
-let read_config () = 
+let read_config () =
   let file = openfile ~mode:[O_RDONLY] (Printf.sprintf "%s/config.json" dir) in
   let f = read_file file in
   let j = Yojson.Basic.from_string f in
@@ -56,7 +56,7 @@ let read_config () =
 
 open Lwt.Infix
 
-let init_listing my_peer key = 
+let init_listing my_peer key =
   let body = (`Assoc [("posts/list.json",`Assoc [])]) |> Yojson.Basic.to_string in
   let path = "/client/set/local/blogger" in
   https_post ~peer:my_peer ~path ~body ~key
@@ -69,23 +69,35 @@ let init ~peer ~key =
   single_write file ~buf:buffer |> fun _ -> (close file); init_listing peer key
 
 let invite ~peer =
-  let my_peer,key = read_config () in 
+  let my_peer,key = read_config () in
   let body = (`Assoc [("R", `String "posts")]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/permit/%s/blogger" peer in
-  https_post ~peer:my_peer ~path ~body ~key 
-  >|= (fun (c,_) -> 
-    if c=204 
-    then (Printf.printf "Peer %s has successfully been permitted to read the blog."       peer) 
+  https_post ~peer:my_peer ~path ~body ~key
+  >|= (fun (c,_) ->
+    if c=204
+    then (Printf.printf "Peer %s has successfully been permitted to read the blog."       peer)
     else (Printf.printf "There was a problem giving peer %s permission to read the blog." peer))
+
+let invite-post ~peer ~id =
+  let my_peer,key = read_config () in
+  let body =
+    (`Assoc [("R", `String (Printf.sprintf "posts/content/%s.json" id))])
+    |> Yojson.Basic.to_string in
+  let path = Printf.sprintf "/client/permit/%s/blogger" peer in
+  https_post ~peer:my_peer ~path ~body ~key
+  >|= (fun (c,_) ->
+      if c=204
+      then (Printf.printf "Peer %s has successfully been permitted to read %s on the blog."    peer id)
+      else (Printf.printf "There was a problem giving peer %s permission to %s read the blog." peer id))
 
 let update_post_list title id my_peer key =
   let body = (`List [`String "posts/list.json"]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/get/local/blogger" in
   https_post ~peer:my_peer ~path ~body ~key
-  >|= (fun (c,b) -> 
+  >|= (fun (c,b) ->
     Yojson.Basic.from_string b
     |> assoc_member "posts/list.json")
-  >|= (fun l -> 
+  >|= (fun l ->
     let entry = `Assoc ((id,`String title)::l) in
     let body' = (`Assoc [("posts/list.json",entry)]) |> Yojson.Basic.to_string in
     let path' = "/client/set/local/blogger" in
@@ -107,24 +119,24 @@ let post ~title ~post =
   update_post_list title id my_peer key
   >>= fun _ -> publish_post title id post my_peer key
 
-let read ~peer ~id = 
+let read ~peer ~id =
   let my_peer,key = read_config () in
   let name = Printf.sprintf "posts/content/%s.json" id in
   let body = (`List [(`Assoc [
     ("path"       ,`String name);
-    ("check_cache", `Bool true ); 
+    ("check_cache", `Bool true );
     ("write_back" , `Bool true )])]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/get/%s/blogger" peer in
   https_post ~peer:my_peer ~path ~body ~key
   >|= (fun (c,b) -> `Assoc
     (Yojson.Basic.from_string b
     |> assoc_member name))
-  >|= (fun j -> 
+  >|= (fun j ->
     let title = string_member "title" j in
     let post  = string_member "content" j in
     Printf.printf "%s:\n\n%s\n\n" title post)
 
-let read_my ~id = 
+let read_my ~id =
   let my_peer,key = read_config () in
   let name = Printf.sprintf "posts/content/%s.json" id in
   let body = (`List [`String name]) |> Yojson.Basic.to_string in
@@ -133,7 +145,7 @@ let read_my ~id =
   >|= (fun (c,b) -> `Assoc
     (Yojson.Basic.from_string b
     |> assoc_member name))
-  >|= (fun j -> 
+  >|= (fun j ->
     let title = string_member "title" j in
     let post  = string_member "content" j in
     Printf.printf "%s:\n\n%s\n\n" title post)
@@ -142,7 +154,7 @@ let remove_from_listing my_peer key id =
   let body = (`List [`String "posts/list.json"]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/get/local/blogger" in
   https_post ~peer:my_peer ~path ~body ~key
-  >|= (fun (c,b) -> 
+  >|= (fun (c,b) ->
     (Yojson.Basic.from_string b
     |> assoc_member "posts/list.json"))
   >>= (fun l ->
@@ -155,37 +167,37 @@ let remove' my_peer key name =
   let body = (`List [`String name]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/del/local/blogger" in
   https_post ~peer:my_peer ~path ~body ~key
-  >>= (fun (_,_) -> 
+  >>= (fun (_,_) ->
     let path' = Printf.sprintf "/client/inv/blogger" in
     https_post ~peer:my_peer ~path:path' ~body ~key)
   >|= (fun (_,_) -> ())
 
-let remove ~id = 
+let remove ~id =
   let my_peer,key = read_config () in
   let name = Printf.sprintf "posts/content/%s.json" id in
   remove_from_listing my_peer key id
   >>= (fun (_,_) -> remove' my_peer key name)
 
-let show ~peer = 
+let show ~peer =
   let my_peer,key = read_config () in
   let body = (`List [(`Assoc [
     ("path"       ,`String "posts/list.json");
-    ("check_cache", `Bool  false            ); 
+    ("check_cache", `Bool  false            );
     ("write_back" , `Bool  false            )])]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/get/%s/blogger" peer in
   https_post ~peer:my_peer ~path ~body ~key
-  >|= (fun (c,b) -> 
+  >|= (fun (c,b) ->
     (Yojson.Basic.from_string b
     |> assoc_member "posts/list.json"))
   >|= (fun l -> Printf.printf "Posts from %s:\n" peer;
     List.iter l ~f:(fun (i',(`String t)) -> Printf.printf "\"%s\" (ID: %s)\n" t i'))
 
-let show_my () = 
+let show_my () =
   let my_peer,key = read_config () in
   let body = (`List [`String "posts/list.json"]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/get/local/blogger" in
   https_post ~peer:my_peer ~path ~body ~key
-  >|= (fun (c,b) -> 
+  >|= (fun (c,b) ->
     (Yojson.Basic.from_string b
     |> assoc_member "posts/list.json"))
   >|= (fun l -> Printf.printf "My posts:\n";
