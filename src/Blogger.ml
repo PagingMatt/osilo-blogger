@@ -87,7 +87,7 @@ let show_my =
 let commands =
   Command.group
     ~summary:"CLI for the osilo blogger."
-    [("init",init);("invite",invite);("invite-post",invite-post);("post",post);("read",read);("read-my",read_my);("remove",remove);("show",show);("show-my",show_my)]
+    [("init",init);("invite",invite);("invite-post",invite_post);("post",post);("read",read);("read-my",read_my);("remove",remove);("show",show);("show-my",show_my)]
 
 let () =
   Command.run
