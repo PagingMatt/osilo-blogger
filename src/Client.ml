@@ -78,7 +78,7 @@ let invite ~peer =
     then (Printf.printf "Peer %s has successfully been permitted to read the blog."       peer)
     else (Printf.printf "There was a problem giving peer %s permission to read the blog." peer))
 
-let invite-post ~peer ~id =
+let invite_post ~peer ~id =
   let my_peer,key = read_config () in
   let body =
     (`Assoc [("R", `String (Printf.sprintf "posts/content/%s.json" id))])

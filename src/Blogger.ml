@@ -19,7 +19,7 @@ let invite =
     )
     (fun p () -> Lwt_main.run (Client.invite ~peer:p))
 
-let invite-post =
+let invite_post =
   Command.basic
     ~summary:"Invites another peer to read a post on this blog."
     Command.Spec.(
@@ -27,7 +27,7 @@ let invite-post =
       +> flag "-p" (required string) ~doc:" Hostname of peer to invite."
       +> flag "-i" (required string) ~doc:" ID of post to invite peer to read."
     )
-    (fun p i () -> Lwt_main.run (Client.invite-post ~peer:p ~id:i))
+    (fun p i () -> Lwt_main.run (Client.invite_post ~peer:p ~id:i))
 
 let post =
   Command.basic
