@@ -6,9 +6,10 @@ let init =
     Command.Spec.(
       empty
       +> flag "-p" (required string) ~doc:" Hostname of peer to blog from."
+      +> flag "-n" (required string) ~doc:" Port of peer to blog from."
       +> flag "-k" (required string) ~doc:" Secret key to share with peer."
     )
-    (fun p k () -> Lwt_main.run (Client.init ~peer:p ~key:k))
+    (fun p n k () -> Lwt_main.run (Client.init ~peer:p ~port:n ~key:k))
 
 let invite =
   Command.basic
@@ -74,14 +75,13 @@ let show_my =
     )
     (fun () -> Lwt_main.run (Client.show_my ()))
 
-let commands = 
-  Command.group 
+let commands =
+  Command.group
     ~summary:"CLI for the osilo blogger."
     [("init",init);("invite",invite);("post",post);("read",read);("read-my",read_my);("remove",remove);("show",show);("show-my",show_my)]
 
-let () = 
+let () =
   Command.run
     ~version:"0.1"
     ~build_info:"osilo-blogger"
     commands
-    
