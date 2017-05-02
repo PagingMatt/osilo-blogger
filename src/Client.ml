@@ -188,10 +188,12 @@ let show ~peer ~port =
   let path = Printf.sprintf "/client/get/%s,%s/blogger" peer port in
   https_post ~peer:my_peer ~port:my_port ~path ~body ~key
   >|= (fun (c,b) ->
-      (Yojson.Basic.from_string b
-       |> assoc_member "posts/list.json"))
-  >|= (fun l -> Printf.printf "Posts from %s:%s\n" peer port;
-        List.iter l ~f:(fun (i',(`String t)) -> Printf.printf "\"%s\" (ID: %s)\n" t i'))
+      try
+        (Yojson.Basic.from_string b |> assoc_member "posts/list.json")
+        |> (fun l -> Printf.printf "Posts from %s:%s\n" peer port;
+             List.iter l ~f:(fun (i',(`String t)) -> Printf.printf "\"%s\" (ID: %s)\n" t i'))
+      with _ -> Printf.printf "Could not retrieve postings list - have you been invited to read the whole blog?\n")
+
 
 let show_my () =
   let my_peer,my_port,key = read_config () in
