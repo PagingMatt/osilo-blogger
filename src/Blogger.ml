@@ -17,8 +17,9 @@ let invite =
     Command.Spec.(
       empty
       +> flag "-p" (required string) ~doc:" Hostname of peer to invite."
+      +> flag "-n" (required string) ~doc:" Port target peer is on."
     )
-    (fun p () -> Lwt_main.run (Client.invite ~peer:p))
+    (fun p n () -> Lwt_main.run (Client.invite ~peer:p ~port:n))
 
 let invite_post =
   Command.basic
@@ -26,9 +27,10 @@ let invite_post =
     Command.Spec.(
       empty
       +> flag "-p" (required string) ~doc:" Hostname of peer to invite."
+      +> flag "-n" (required string) ~doc:" Port target peer is on."
       +> flag "-i" (required string) ~doc:" ID of post to invite peer to read."
     )
-    (fun p i () -> Lwt_main.run (Client.invite_post ~peer:p ~id:i))
+    (fun p n i () -> Lwt_main.run (Client.invite_post ~peer:p ~id:i ~port:n))
 
 let post =
   Command.basic
@@ -46,9 +48,10 @@ let read =
     Command.Spec.(
       empty
       +> flag "-p" (required string) ~doc:" Peer blog post is from."
+      +> flag "-n" (required string) ~doc:" Port target peer is on."
       +> flag "-i" (required string) ~doc:" ID of post to read."
     )
-    (fun p i () -> Lwt_main.run (Client.read ~peer:p ~id:i))
+    (fun p n i () -> Lwt_main.run (Client.read ~peer:p ~id:i ~port:n))
 
 let read_my =
   Command.basic
@@ -74,8 +77,9 @@ let show =
     Command.Spec.(
       empty
       +> flag "-p" (required string) ~doc:" Peer to get summary for."
+      +> flag "-n" (required string) ~doc:" Port target peer is on."
     )
-    (fun p () -> Lwt_main.run (Client.show ~peer:p))
+    (fun p n () -> Lwt_main.run (Client.show ~peer:p ~port:n))
 
 let show_my =
   Command.basic
