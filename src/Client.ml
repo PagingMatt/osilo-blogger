@@ -88,7 +88,7 @@ let invite_post ~peer ~port ~id =
   https_post ~peer:my_peer ~port:my_port ~path ~body ~key
   >|= (fun (c,_) ->
       if c=204
-      then (Printf.printf "Peer %s has successfully been permitted to read %s on the blog."    peer id)
+      then (Printf.printf "Peer %s:%s has successfully been permitted to read %s on the blog."    peer port id)
       else (Printf.printf "There was a problem giving peer %s permission to %s read the blog." peer id))
 
 let update_post_list title id my_peer my_port key =
@@ -129,13 +129,15 @@ let read ~peer ~port ~id =
       ("write_back" , `Bool true )])]) |> Yojson.Basic.to_string in
   let path = Printf.sprintf "/client/get/%s,%s/blogger" peer port in
   https_post ~peer:my_peer ~port:my_port ~path ~body ~key
-  >|= (fun (c,b) -> `Assoc
+  >|= (fun (c,b) ->
+
+        (`Assoc
           (Yojson.Basic.from_string b
-           |> assoc_member name))
-  >|= (fun j ->
-      let title = string_member "title" j in
-      let post  = string_member "content" j in
-      Printf.printf "%s:\n\n%s\n\n" title post)
+          |> assoc_member name))
+          |> (fun j ->
+            let title = string_member "title" j in
+            let post  = string_member "content" j in
+            Printf.printf "%s:\n\n%s\n\n" title post))
 
 let read_my ~id =
   let my_peer,my_port,key = read_config () in
