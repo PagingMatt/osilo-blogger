@@ -13,9 +13,8 @@ let build_uri ~peer ~port ~path =
   Uri.make ~scheme:"https" ~host:peer ~port ~path:path ()
 
 let handle_http_resp (r,b) =
-  let code = r |> Response.status |> Code.code_of_status in
-  let body = Cohttp_lwt_body.to_string b in body
-  >|= fun bdy -> (code,bdy)
+  Cohttp_lwt_body.to_string b
+  >|= fun b' -> (Response.status r |> Code.code_of_status,b')
 
 let https_post ~peer ~port ~path ~body ~key =
   let uri = build_uri ~peer ~path ~port in
